@@ -1,0 +1,245 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+
+import tensorflow as tf
+from tensorflow.keras.datasets import mnist
+from tensorflow import keras
+from tensorflow.keras.layers import Dense, Activation
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.utils import to_categorical
+
+%matplotlib inline
+np.random.seed(0)
+(X_train, labels_train), (X_test, labels_test) = mnist.load_data()
+print(labels_train)
+[5 0 4 ... 5 6 8]
+X_train, X_validation, labels_train, labels_validation = train_test_split(X_train, labels_train, test_size=0.2)
+X_train.shape
+(48000, 28, 28)
+X_validation.shape
+(12000, 28, 28)
+X_test.shape
+(10000, 28, 28)
+label_images = {label: [] for label in set(labels_train.tolist())}
+for x, label in zip(X_train, labels_train):
+    if all(len(images) >= 10 for images in label_images.values()):
+        break
+    if len(label_images[label]) >= 10:
+        continue
+    label_images[label].append(x)
+    
+for j, (label, images) in enumerate(label_images.items()):
+    plt.subplot(10, 11, j * 11 + 1)
+    plt.text(0.5, 0.5, label, ha='center', va='center')
+    plt.axis('off')
+    for i, image in enumerate(images):
+        if i >= 10:
+            continue
+        plt.subplot(10, 11, j * 11 +  i + 2)
+        plt.imshow(image, cmap='Greys_r')
+        plt.axis('off')
+plt.show()
+    
+del label_images
+
+label_images = {label: [] for label in set(labels_test.tolist())}
+for x, label in zip(X_test, labels_test):
+    if all(len(images) >= 10 for images in label_images.values()):
+        break
+    if len(label_images[label]) >= 10:
+        continue
+    label_images[label].append(x)
+    
+for j, (label, images) in enumerate(label_images.items()):
+    plt.subplot(10, 11, j * 11 + 1)
+    plt.text(0.5, 0.5, label, ha='center', va='center')
+    plt.axis('off')
+    for i, image in enumerate(images):
+        if i >= 10:
+            continue
+        plt.subplot(10, 11, j * 11 +  i + 2)
+        plt.imshow(image, cmap='Greys_r')
+        plt.axis('off')
+plt.show()
+    
+del label_images
+
+X_train = X_train.reshape(len(X_train), -1)
+X_validation = X_validation.reshape(len(X_validation), -1)
+X_test = X_test.reshape(len(X_test), -1)
+print(X_train.shape)
+print(X_validation.shape)
+print(X_test.shape)
+(48000, 784)
+(12000, 784)
+(10000, 784)
+y_train = to_categorical(labels_train, num_classes=None, dtype='float32')
+y_validation = to_categorical(labels_validation, num_classes=None, dtype='float32')
+y_test = to_categorical(labels_test, num_classes=None, dtype='float32')
+# パラメータの設定
+n_features = 784
+n_hidden   = 10
+bias_init = 0.1
+
+# 学習率
+rate       = 0.01
+
+# Sequentialクラスを使ってモデルを準備する
+model = Sequential()
+
+# 隠れ層を追加
+model.add(Dense(n_hidden, activation='relu', input_shape=(n_features,),
+                kernel_initializer=keras.initializers.TruncatedNormal(stddev=0.1),
+                bias_initializer=keras.initializers.constant(bias_init)))
+
+model.add(Dense(n_hidden, activation='relu', input_shape=(n_features,),
+                kernel_initializer=keras.initializers.TruncatedNormal(stddev=0.1),
+                bias_initializer=keras.initializers.constant(bias_init)))
+
+model.add(Dense(n_hidden, activation='relu', input_shape=(n_features,),
+                kernel_initializer=keras.initializers.TruncatedNormal(stddev=0.1),
+                bias_initializer=keras.initializers.constant(bias_init)))
+
+model.add(Dense(n_hidden, activation='relu', input_shape=(n_features,),
+                kernel_initializer=keras.initializers.TruncatedNormal(stddev=0.1),
+                bias_initializer=keras.initializers.constant(bias_init)))
+
+# 出力層を追加
+model.add(Dense(n_hidden, activation='softmax', 
+                kernel_initializer=keras.initializers.TruncatedNormal(stddev=0.1),
+                bias_initializer=keras.initializers.constant(bias_init)))
+
+# TensorFlowのモデルを構築
+model.compile(optimizer=tf.train.AdamOptimizer(learning_rate=0.001,
+    beta1=0.9,
+    beta2=0.999,
+    epsilon=1e-08,
+    use_locking=False,
+    name='Adam'),
+            loss='categorical_crossentropy', metrics=['mae', 'accuracy'])
+WARNING:tensorflow:From /home/ec2-user/.pyenv/versions/3.6.5/lib/python3.6/site-packages/tensorflow/python/ops/resource_variable_ops.py:435: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+log = model.fit(X_train, y_train, epochs=3000, batch_size=100, verbose=True,
+                callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', 
+                                                         min_delta=0, patience=20, 
+                                                         verbose=1)],
+                validation_data=(X_validation, y_validation))
+Train on 48000 samples, validate on 12000 samples
+WARNING:tensorflow:From /home/ec2-user/.pyenv/versions/3.6.5/lib/python3.6/site-packages/tensorflow/python/ops/math_ops.py:3066: to_int32 (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.cast instead.
+Epoch 1/3000
+48000/48000 [==============================] - 1s 28us/sample - loss: 0.7984 - mean_absolute_error: 0.0735 - acc: 0.7301 - val_loss: 0.4108 - val_mean_absolute_error: 0.0401 - val_acc: 0.8773
+Epoch 2/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.3665 - mean_absolute_error: 0.0347 - acc: 0.8924 - val_loss: 0.3179 - val_mean_absolute_error: 0.0301 - val_acc: 0.9070
+Epoch 3/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.3109 - mean_absolute_error: 0.0289 - acc: 0.9089 - val_loss: 0.2854 - val_mean_absolute_error: 0.0267 - val_acc: 0.9168
+Epoch 4/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2776 - mean_absolute_error: 0.0258 - acc: 0.9188 - val_loss: 0.2759 - val_mean_absolute_error: 0.0249 - val_acc: 0.9201
+Epoch 5/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2591 - mean_absolute_error: 0.0241 - acc: 0.9240 - val_loss: 0.2542 - val_mean_absolute_error: 0.0238 - val_acc: 0.9285
+Epoch 6/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2426 - mean_absolute_error: 0.0225 - acc: 0.9283 - val_loss: 0.2382 - val_mean_absolute_error: 0.0212 - val_acc: 0.9321
+Epoch 7/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2311 - mean_absolute_error: 0.0214 - acc: 0.9331 - val_loss: 0.2367 - val_mean_absolute_error: 0.0204 - val_acc: 0.9330
+Epoch 8/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2229 - mean_absolute_error: 0.0206 - acc: 0.9340 - val_loss: 0.2395 - val_mean_absolute_error: 0.0213 - val_acc: 0.9304
+Epoch 9/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2149 - mean_absolute_error: 0.0198 - acc: 0.9366 - val_loss: 0.2411 - val_mean_absolute_error: 0.0211 - val_acc: 0.9317
+Epoch 10/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2101 - mean_absolute_error: 0.0195 - acc: 0.9377 - val_loss: 0.2254 - val_mean_absolute_error: 0.0192 - val_acc: 0.9352
+Epoch 11/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.2030 - mean_absolute_error: 0.0189 - acc: 0.9393 - val_loss: 0.2379 - val_mean_absolute_error: 0.0203 - val_acc: 0.9311
+Epoch 12/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1985 - mean_absolute_error: 0.0183 - acc: 0.9415 - val_loss: 0.2386 - val_mean_absolute_error: 0.0201 - val_acc: 0.9302
+Epoch 13/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1946 - mean_absolute_error: 0.0181 - acc: 0.9407 - val_loss: 0.2229 - val_mean_absolute_error: 0.0192 - val_acc: 0.9352
+Epoch 14/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1907 - mean_absolute_error: 0.0177 - acc: 0.9427 - val_loss: 0.2202 - val_mean_absolute_error: 0.0182 - val_acc: 0.9373
+Epoch 15/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1853 - mean_absolute_error: 0.0172 - acc: 0.9454 - val_loss: 0.2142 - val_mean_absolute_error: 0.0174 - val_acc: 0.9403
+Epoch 16/3000
+48000/48000 [==============================] - 1s 20us/sample - loss: 0.1837 - mean_absolute_error: 0.0171 - acc: 0.9444 - val_loss: 0.2312 - val_mean_absolute_error: 0.0193 - val_acc: 0.9329
+Epoch 17/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1762 - mean_absolute_error: 0.0165 - acc: 0.9477 - val_loss: 0.2177 - val_mean_absolute_error: 0.0177 - val_acc: 0.9386
+Epoch 18/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1760 - mean_absolute_error: 0.0165 - acc: 0.9471 - val_loss: 0.2127 - val_mean_absolute_error: 0.0176 - val_acc: 0.9373
+Epoch 19/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1754 - mean_absolute_error: 0.0162 - acc: 0.9481 - val_loss: 0.2084 - val_mean_absolute_error: 0.0171 - val_acc: 0.9418
+Epoch 20/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1719 - mean_absolute_error: 0.0160 - acc: 0.9489 - val_loss: 0.2257 - val_mean_absolute_error: 0.0184 - val_acc: 0.9362
+Epoch 21/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1735 - mean_absolute_error: 0.0161 - acc: 0.9473 - val_loss: 0.2228 - val_mean_absolute_error: 0.0183 - val_acc: 0.9354
+Epoch 22/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1675 - mean_absolute_error: 0.0156 - acc: 0.9497 - val_loss: 0.2184 - val_mean_absolute_error: 0.0179 - val_acc: 0.9346
+Epoch 23/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1664 - mean_absolute_error: 0.0156 - acc: 0.9498 - val_loss: 0.2178 - val_mean_absolute_error: 0.0178 - val_acc: 0.9382
+Epoch 24/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1656 - mean_absolute_error: 0.0155 - acc: 0.9493 - val_loss: 0.2118 - val_mean_absolute_error: 0.0168 - val_acc: 0.9410
+Epoch 25/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1614 - mean_absolute_error: 0.0151 - acc: 0.9523 - val_loss: 0.2097 - val_mean_absolute_error: 0.0166 - val_acc: 0.9407
+Epoch 26/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1602 - mean_absolute_error: 0.0149 - acc: 0.9524 - val_loss: 0.2268 - val_mean_absolute_error: 0.0182 - val_acc: 0.9346
+Epoch 27/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1579 - mean_absolute_error: 0.0148 - acc: 0.9526 - val_loss: 0.2296 - val_mean_absolute_error: 0.0179 - val_acc: 0.9363
+Epoch 28/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1577 - mean_absolute_error: 0.0146 - acc: 0.9531 - val_loss: 0.2358 - val_mean_absolute_error: 0.0182 - val_acc: 0.9336
+Epoch 29/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1583 - mean_absolute_error: 0.0149 - acc: 0.9516 - val_loss: 0.2127 - val_mean_absolute_error: 0.0168 - val_acc: 0.9378
+Epoch 30/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1571 - mean_absolute_error: 0.0146 - acc: 0.9532 - val_loss: 0.2122 - val_mean_absolute_error: 0.0163 - val_acc: 0.9408
+Epoch 31/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1550 - mean_absolute_error: 0.0145 - acc: 0.9538 - val_loss: 0.2064 - val_mean_absolute_error: 0.0158 - val_acc: 0.9430
+Epoch 32/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1562 - mean_absolute_error: 0.0146 - acc: 0.9523 - val_loss: 0.2058 - val_mean_absolute_error: 0.0163 - val_acc: 0.9423
+Epoch 33/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1527 - mean_absolute_error: 0.0144 - acc: 0.9536 - val_loss: 0.2169 - val_mean_absolute_error: 0.0169 - val_acc: 0.9382
+Epoch 34/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1502 - mean_absolute_error: 0.0142 - acc: 0.9549 - val_loss: 0.2195 - val_mean_absolute_error: 0.0162 - val_acc: 0.9376
+Epoch 35/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1526 - mean_absolute_error: 0.0142 - acc: 0.9535 - val_loss: 0.2391 - val_mean_absolute_error: 0.0178 - val_acc: 0.9326
+Epoch 36/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1513 - mean_absolute_error: 0.0141 - acc: 0.9546 - val_loss: 0.2094 - val_mean_absolute_error: 0.0160 - val_acc: 0.9406
+Epoch 37/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1484 - mean_absolute_error: 0.0138 - acc: 0.9558 - val_loss: 0.2355 - val_mean_absolute_error: 0.0175 - val_acc: 0.9342
+Epoch 38/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1473 - mean_absolute_error: 0.0137 - acc: 0.9556 - val_loss: 0.2323 - val_mean_absolute_error: 0.0179 - val_acc: 0.9347
+Epoch 39/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1495 - mean_absolute_error: 0.0139 - acc: 0.9553 - val_loss: 0.2369 - val_mean_absolute_error: 0.0172 - val_acc: 0.9338
+Epoch 40/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1503 - mean_absolute_error: 0.0140 - acc: 0.9540 - val_loss: 0.2142 - val_mean_absolute_error: 0.0159 - val_acc: 0.9408
+Epoch 41/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1453 - mean_absolute_error: 0.0136 - acc: 0.9558 - val_loss: 0.2159 - val_mean_absolute_error: 0.0164 - val_acc: 0.9395
+Epoch 42/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1451 - mean_absolute_error: 0.0136 - acc: 0.9560 - val_loss: 0.2131 - val_mean_absolute_error: 0.0159 - val_acc: 0.9416
+Epoch 43/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1435 - mean_absolute_error: 0.0133 - acc: 0.9572 - val_loss: 0.2197 - val_mean_absolute_error: 0.0164 - val_acc: 0.9392
+Epoch 44/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1425 - mean_absolute_error: 0.0133 - acc: 0.9572 - val_loss: 0.2250 - val_mean_absolute_error: 0.0164 - val_acc: 0.9406
+Epoch 45/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1426 - mean_absolute_error: 0.0135 - acc: 0.9563 - val_loss: 0.2288 - val_mean_absolute_error: 0.0165 - val_acc: 0.9368
+Epoch 46/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1431 - mean_absolute_error: 0.0133 - acc: 0.9567 - val_loss: 0.2194 - val_mean_absolute_error: 0.0164 - val_acc: 0.9397
+Epoch 47/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1408 - mean_absolute_error: 0.0132 - acc: 0.9576 - val_loss: 0.2323 - val_mean_absolute_error: 0.0162 - val_acc: 0.9365
+Epoch 48/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1423 - mean_absolute_error: 0.0132 - acc: 0.9570 - val_loss: 0.2340 - val_mean_absolute_error: 0.0173 - val_acc: 0.9376
+Epoch 49/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1419 - mean_absolute_error: 0.0131 - acc: 0.9578 - val_loss: 0.2136 - val_mean_absolute_error: 0.0160 - val_acc: 0.9400
+Epoch 50/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1375 - mean_absolute_error: 0.0129 - acc: 0.9582 - val_loss: 0.2115 - val_mean_absolute_error: 0.0156 - val_acc: 0.9430
+Epoch 51/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1406 - mean_absolute_error: 0.0130 - acc: 0.9572 - val_loss: 0.2234 - val_mean_absolute_error: 0.0164 - val_acc: 0.9378
+Epoch 52/3000
+48000/48000 [==============================] - 1s 19us/sample - loss: 0.1380 - mean_absolute_error: 0.0128 - acc: 0.9583 - val_loss: 0.2313 - val_mean_absolute_error: 0.0170 - val_acc: 0.9365
+Epoch 00052: early stopping
+pred_test = model.predict_classes(X_test)
+validation = (pred_test == labels_test)
+size       = validation.size
+size
+correct    = np.count_nonzero(validation)
+print(f"{correct}/{size} correct ({correct*100/size:.3f}%)")
+9342/10000 correct (93.420%)
